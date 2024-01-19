@@ -74,11 +74,17 @@ class Value:
     def backward(self):
         self.grad = 1
 
+        topo = []
+        visited = set()
+        def build_topo(v):
+            if v not in visited:
+                visited.add(v)
+                for child in v._prev:
+                    build_topo(child)
+                topo.append(v)
+        build_topo(self)
 
+        for v in reversed(topo):
+            v._backward()
         return
 
-
-#testing stuff
-if __name__ == "__main__":
-    a = Value(1)
-    print(a.tanh().data)
