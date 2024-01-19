@@ -1,4 +1,16 @@
-import numpy as np
+import math
+
+
+def sigmoid_scalar(x):
+    y = 1 / (1 + math.exp(float(-x)))
+    dy = y * (1 - y)
+    return (y, dy)
+
+def tanh_scalar(x):
+    y = 1 - (2 / (math.exp(2 * float(x)) + 1))
+    dy = 1 - y**2
+    return (y, dy)
+
 
 class Value:
     def __init__(self, data, _children=[], _op="") -> None:
@@ -12,14 +24,20 @@ class Value:
         out = Value(self.data + other.data, [self, other], "+")
 
         def _backward():
-            return ()
-        self._backward =
+            self.grad += out.grad
+            other.grad += out.grad
+        
+        self._backward = _backward
         return out
 
     def __mul__(self, other):
         other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data * other.data, [self, other], _op="*")
 
+        def _backward():
+            self.grad += other.grad * out.grad
+            other.grad += self.grad * out.grad
+        self._backward = _backward
         return out
 
     def __pow__(self, other):
@@ -27,15 +45,40 @@ class Value:
 
         out = Value(self.data ** other, [self, other], "**")
         return out
+    
+    def relu(self):
+        out = Value(0 if self.data < 0 else self.data)
+
+        def _backward():
+            self.grad += (self.data > 0) * out.grad
+        self._backward = _backward
+        
+        return out
+    
+    def sigmoid(self):
+        out = Value(sigmoid_scalar(self.data)[0])
+
+        def _backward():
+            self.grad += sigmoid_scalar(self.data)[1] * out.grad
+        self._backward = _backward
+
+        return out
+    def tanh(self):
+        out = Value(tanh_scalar(self.data)[0])
+
+        def _backward():
+            self.grad += tanh_scalar(self.data)[1] * out.grad
+        self._backward = _backward
+
+        return out    
     def backward(self):
         self.grad = 1
+
 
         return
 
 
 #testing stuff
 if __name__ == "__main__":
-    a = Value(5)
-    b = Value(6)
-    c = a ** b.data
-    print(c.data)
+    a = Value(1)
+    print(a.tanh().data)
